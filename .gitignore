@@ -1,3 +1,5 @@
 node_modules
 .env
-.DS
+backend/.env
+frontend/.env
+.DS_Store

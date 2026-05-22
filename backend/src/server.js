@@ -24,10 +24,14 @@ if (ENV.NODE_ENV === "production") {
 }
 const startServer = async () => {
     try {
+          if (!ENV.DB_URL) {
+        throw new Error("DB_URL is not defined in environment variables");
+   }
         await connectDB();
         app.listen(ENV.PORT, () => console.log("Server is running on port:", ENV.PORT));
     } catch (error) {
         console.error("💥 Error starting the server", error);
+        process.exit(1);
     }
 };
 startServer();

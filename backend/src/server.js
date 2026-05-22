@@ -2,11 +2,11 @@ import express from 'express';
 import path from 'path';
 import dotenv from 'dotenv';
 import { ENV } from './lib/env.js';
-
+import { connectDB } from "./lib/db.js";
 const app = express();
 
-console.log('PORT:', ENV.PORT);
-console.log('DB_URL:', ENV.DB_URL);
+//console.log('PORT:', ENV.PORT);
+//console.log('DB_URL:', ENV.DB_URL);
 const __dirname = path.resolve();
 
 app.get('/health', (req, res) => {
@@ -22,6 +22,16 @@ if (ENV.NODE_ENV === "production") {
         res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
     });
 }
-app.listen(ENV.PORT, () => {
-    console.log('Server is running on port', ENV.PORT);
-});
+const startServer = async () => {
+    try {
+          if (!ENV.DB_URL) {
+        throw new Error("DB_URL is not defined in environment variables");
+   }
+        await connectDB();
+        app.listen(ENV.PORT, () => console.log("Server is running on port:", ENV.PORT));
+    } catch (error) {
+        console.error("💥 Error starting the server", error);
+        process.exit(1);
+    }
+};
+startServer();

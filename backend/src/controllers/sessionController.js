@@ -10,7 +10,9 @@ export async function createSession(req, res) {
         if (!problem || !difficulty) {
             return res.status(400).json({ message: "Problem and difficulty are required" });
         }
-
+        if (!["easy", "medium", "hard"].includes(difficulty)) {
+            return res.status(400).json({ message: "Invalid difficulty value" });
+        }
         // generate a unique call id for stream video
         const callId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
@@ -162,3 +164,25 @@ export async function endSession(req, res) {
         res.status(500).json({ message: "Internal Server Error" });
     }
 }
+
+// in line 101 to 117 we add this to remove race condition
+// const session = await Session.findOneAndUpdate(
+//     {
+//         _id: id,
+//         status: "active",
+//         participant: null,
+//         host: { $ne: userId },
+//     },
+//     {
+//         $set: { participant: userId },
+//     },
+//     {
+//         new: true,
+//     }
+// );
+
+// if (!session) {
+//     return res
+//         .status(409)
+//         .json({ message: "Session is full or unavailable" });
+// }

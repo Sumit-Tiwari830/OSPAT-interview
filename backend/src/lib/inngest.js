@@ -26,6 +26,7 @@ const syncUser = inngest.createFunction(
             name: newUser.name,
             image: newUser.profileImage,
         });
+        // in future we can add welocme email
     }
 );
 

@@ -83,9 +83,12 @@ function SessionPage() {
         setIsRunning(true);
         setOutput(null);
 
-        const result = await executeCode(selectedLanguage, code);
-        setOutput(result);
-        setIsRunning(false);
+        try {
+            const result = await executeCode(selectedLanguage, code);
+            setOutput(result);
+        } finally {
+            setIsRunning(false);
+        }
     };
 
     const handleEndSession = () => {

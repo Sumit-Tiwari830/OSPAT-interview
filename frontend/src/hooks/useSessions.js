@@ -36,7 +36,14 @@ export const useSessionById = (id) => {
         queryKey: ["session", id],
         queryFn: () => sessionApi.getSessionById(id),
         enabled: !!id,
-        refetchInterval: 5000, // refetch every 5 seconds to detect session status changes
+        refetchInterval: (query) => {
+            const session = query.state.data;
+            // Stop polling if session has ended
+            if (session?.status === "ended" || session?.status === "completed") {
+                return false;
+            }
+            return 5000; // poll every 5 seconds while active
+        },
     });
 
     return result;

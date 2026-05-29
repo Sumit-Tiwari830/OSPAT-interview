@@ -52,16 +52,16 @@ function SessionPage() {
     const [proctorPayload, setProctorPayload] = useState(null);
 
     // Fetch the token using your built-in Axios configuration
+    // Fetch the token using your built-in Axios configuration
     useEffect(() => {
-        // Now accurately restricted to ONLY the participant!
-        if (isParticipant && session?.status === "active") {
+        if (isParticipant && session?.status === "active" && session?.callId) {
             const fetchProctorToken = async () => {
                 try {
-                    // Axios automatically prefixes your VITE_API_URL here
                     const response = await axiosInstance.get('/sessions/proctor-token');
                     
+                    // THE FIX IS HERE: We MUST use session.callId, not the database id!
                     const jsonPayload = JSON.stringify({
-                        callId: id,
+                        callId: session.callId, 
                         token: response.data.token
                     });
                     
@@ -72,7 +72,7 @@ function SessionPage() {
             };
             fetchProctorToken();
         }
-    }, [isParticipant, session?.status, id]);
+    }, [isParticipant, session?.status, session?.callId]);
     // ----------------------------
 
     // auto-join session if user is not already a participant and not the host

@@ -3,6 +3,7 @@ import {
     CallingState,
     SpeakerLayout,
     useCallStateHooks,
+    ParticipantView, // <-- Added this to render specific video tiles
 } from "@stream-io/video-react-sdk";
 import { Loader2Icon, MessageSquareIcon, UsersIcon, XIcon } from "lucide-react";
 import { useState } from "react";
@@ -14,10 +15,21 @@ import "stream-chat-react/dist/css/v2/index.css";
 
 function VideoCallUI({ chatClient, channel }) {
     const navigate = useNavigate();
-    const { useCallCallingState, useParticipantCount } = useCallStateHooks();
+    
+    // We pulled in useParticipants to see exactly who is in the room
+    const { useCallCallingState, useParticipantCount, useParticipants } = useCallStateHooks();
+    
     const callingState = useCallCallingState();
     const participantCount = useParticipantCount();
+    const participants = useParticipants(); 
+    
     const [isChatOpen, setIsChatOpen] = useState(false);
+
+    // Isolate the Mobile Proctor Feed from the human participants
+    const proctorCamera = participants.find(p => p.userId === 'proctor_camera_01');
+    
+    // Calculate human count so the UI doesn't confuse users by counting the phone as a person
+    const humanCount = proctorCamera ? participantCount - 1 : participantCount;
 
     if (callingState === CallingState.JOINING) {
         return (
@@ -38,7 +50,7 @@ function VideoCallUI({ chatClient, channel }) {
                     <div className="flex items-center gap-2">
                         <UsersIcon className="w-5 h-5 text-primary" />
                         <span className="font-semibold">
-                            {participantCount} {participantCount === 1 ? "participant" : "participants"}
+                            {humanCount} {humanCount === 1 ? "participant" : "participants"}
                         </span>
                     </div>
                     {chatClient && channel && (
@@ -53,8 +65,27 @@ function VideoCallUI({ chatClient, channel }) {
                     )}
                 </div>
 
+                {/* VIDEO LAYOUT AREA */}
                 <div className="flex-1 bg-base-300 rounded-lg overflow-hidden relative">
+                    {/* The main grid for the Host and Candidate */}
                     <SpeakerLayout />
+
+                    {/* NEW: THE PROCTOR SECURITY CAMERA OVERLAY */}
+                    {proctorCamera && (
+                        <div className="absolute top-4 right-4 w-48 sm:w-64 aspect-video bg-black border-2 border-error/80 rounded-lg shadow-2xl overflow-hidden z-50 transition-all">
+                            {/* The specific video feed from the Flutter app */}
+                            <ParticipantView 
+                                participant={proctorCamera} 
+                                trackType="videoTrack" 
+                            />
+                            
+                            {/* "REC" style CCTV Badge */}
+                            <div className="absolute top-0 left-0 w-full bg-error/90 text-white text-[10px] sm:text-xs font-bold px-2 py-1 uppercase tracking-wider flex items-center gap-2 backdrop-blur-sm">
+                                <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                                Proctor Feed
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="bg-base-100 p-3 rounded-lg shadow flex justify-center">
@@ -63,7 +94,6 @@ function VideoCallUI({ chatClient, channel }) {
             </div>
 
             {/* CHAT SECTION */}
-
             {chatClient && channel && (
                 <div
                     className={`flex flex-col rounded-lg shadow overflow-hidden bg-[#272a30] transition-all duration-300 ease-in-out ${isChatOpen ? "w-80 opacity-100" : "w-0 opacity-0"
@@ -99,4 +129,5 @@ function VideoCallUI({ chatClient, channel }) {
         </div>
     );
 }
+
 export default VideoCallUI;

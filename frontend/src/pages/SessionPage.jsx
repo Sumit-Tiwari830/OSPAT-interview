@@ -1,3 +1,5 @@
+import { QRCodeSVG } from 'qrcode.react';
+import axiosInstance from "../lib/axios";
 import { useUser } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
@@ -45,6 +47,33 @@ function SessionPage() {
 
     const [selectedLanguage, setSelectedLanguage] = useState("javascript");
     const [code, setCode] = useState(problemData?.starterCode?.[selectedLanguage] || "");
+
+    // --- NEW PROCTORING LOGIC ---
+    const [proctorPayload, setProctorPayload] = useState(null);
+
+    // Fetch the token using your built-in Axios configuration
+    useEffect(() => {
+        // Now accurately restricted to ONLY the participant!
+        if (isParticipant && session?.status === "active") {
+            const fetchProctorToken = async () => {
+                try {
+                    // Axios automatically prefixes your VITE_API_URL here
+                    const response = await axiosInstance.get('/sessions/proctor-token');
+                    
+                    const jsonPayload = JSON.stringify({
+                        callId: id,
+                        token: response.data.token
+                    });
+                    
+                    setProctorPayload(jsonPayload);
+                } catch (error) {
+                    console.error("Failed to fetch proctor token:", error);
+                }
+            };
+            fetchProctorToken();
+        }
+    }, [isParticipant, session?.status, id]);
+    // ----------------------------
 
     // auto-join session if user is not already a participant and not the host
     useEffect(() => {
@@ -124,6 +153,21 @@ function SessionPage() {
                                                     Host: {session?.host?.name || "Loading..."} •{" "}
                                                     {session?.participant ? 2 : 1}/2 participants
                                                 </p>
+
+                                                {/* NEW PROCTORING QR CODE - Participant View Only */}
+                                                {isParticipant && session?.status === "active" && proctorPayload && (
+                                                    <div className="mt-4 p-4 bg-base-200 border border-primary/20 rounded-xl flex items-center gap-4 inline-flex">
+                                                        <div className="bg-white p-2 rounded-lg shadow-sm">
+                                                            <QRCodeSVG value={proctorPayload} size={128} />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-bold text-sm text-primary mb-1">Secondary Camera Required</h3>
+                                                            <p className="text-xs text-base-content/70 max-w-[150px]">
+                                                                Scan with your mobile app to activate your proctoring feed.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="flex items-center gap-3">

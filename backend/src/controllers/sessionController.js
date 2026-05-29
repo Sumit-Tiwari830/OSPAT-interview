@@ -165,6 +165,17 @@ export async function endSession(req, res) {
     }
 }
 
+export async function getProctorToken(req, res) {
+    try {
+        const proctorId = "proctor_camera_01";
+        const token = chatClient.createToken(proctorId);
+        res.status(200).json({ token });
+    } catch (error) {
+        console.log("Error in getProctorToken controller:", error.message);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
 // in line 101 to 117 we add this to remove race condition
 // const session = await Session.findOneAndUpdate(
 //     {

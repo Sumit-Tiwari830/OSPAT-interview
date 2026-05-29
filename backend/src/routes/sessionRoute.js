@@ -7,14 +7,14 @@ import {
     getMyRecentSessions,
     getSessionById,
     joinSession,
+    getProctorToken, // <-- Add this here
 } from "../controllers/sessionController.js";
-
 const router = express.Router();
 
 router.post("/", protectRoute, createSession);
 router.get("/active", protectRoute, getActiveSessions);
 router.get("/my-recent", protectRoute, getMyRecentSessions);
-
+router.get("/proctor-token", getProctorToken); // <-- ADD THIS LINE HERE
 router.get("/:id", protectRoute, getSessionById);
 router.post("/:id/join", protectRoute, joinSession);
 router.post("/:id/end", protectRoute, endSession);

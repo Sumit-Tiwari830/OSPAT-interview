@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart'; 
 import 'qr_scanner_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
   runApp(const OSPATProctorApp());
 }
 
@@ -12,13 +14,16 @@ class OSPATProctorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'OSPAT Mobile Proctor',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF7480FF), 
+          brightness: Brightness.dark,
+        ),
         useMaterial3: true,
       ),
-      // Skip the default counter app and go straight to our scanner
-      home: const QrScannerScreen(), 
+      home: const QrScannerScreen(),
     );
   }
 }

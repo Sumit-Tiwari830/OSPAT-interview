@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:stream_video_flutter/stream_video_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ProctoringRoomScreen extends StatefulWidget {
   final String callId;
+  final String token; // The new token parameter!
 
-  const ProctoringRoomScreen({super.key, required this.callId});
+  const ProctoringRoomScreen({super.key, required this.callId, required this.token});
 
   @override
   State<ProctoringRoomScreen> createState() => _ProctoringRoomScreenState();
@@ -30,9 +32,20 @@ class _ProctoringRoomScreenState extends State<ProctoringRoomScreen> {
   }
 
   Future<void> _initializeProctoringCall() async {
-    final videoClient = StreamVideo.instance;
+    final streamApiKey = dotenv.env['STREAM_API_KEY'] ?? '';
+
+    // Define this phone as the Proctor
+    final proctorUser = User(
+      info: UserInfo(id: 'proctor_camera_01', name: 'Mobile Proctor', role: 'admin'),
+    );
+
+    // Initialize the Stream Client right here using the parsed token
+    final videoClient = StreamVideo(
+      streamApiKey,
+      user: proctorUser,
+      userToken: widget.token,
+    );
     
-    // FIX 1: Using the specific StreamCallType class
     final call = videoClient.makeCall(
       callType: StreamCallType.defaultType(), 
       id: widget.callId,
@@ -45,6 +58,7 @@ class _ProctoringRoomScreenState extends State<ProctoringRoomScreen> {
     }
   }
 
+  // ... KEEP YOUR ENTIRE build(BuildContext context) METHOD EXACTLY AS IT IS BELOW ...
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,26 +77,28 @@ class _ProctoringRoomScreenState extends State<ProctoringRoomScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Proctor Camera',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Proctor Camera',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Session ID: ${widget.callId}',
-                        style: TextStyle(
-                          color: textBaseContent.withOpacity(0.7),
-                          fontSize: 14,
+                        const SizedBox(height: 6),
+                        Text(
+                          'Session ID: ${widget.callId}',
+                          style: TextStyle(
+                            color: textBaseContent.withOpacity(0.7),
+                            fontSize: 14,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

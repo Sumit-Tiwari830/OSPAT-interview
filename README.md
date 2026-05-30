@@ -14,7 +14,7 @@ real-time collaboration, and automated code evaluation.
 ![MongoDB](https://img.shields.io/badge/MongoDB-Database-green)
 ![Clerk](https://img.shields.io/badge/Auth-Clerk-purple)
 ![Stream](https://img.shields.io/badge/Video-Stream-red)
-![License](https://img.shields.io/badge/License-MIT-brightgreen)
+
 
 </div>
 

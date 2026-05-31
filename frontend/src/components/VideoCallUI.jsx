@@ -28,9 +28,12 @@ function VideoCallUI({ chatClient, channel }) {
     // Isolate the Mobile Proctor Feed from the human participants
     const proctorCamera = participants.find(p => p.userId === 'proctor_camera_01');
     
-    // Calculate human count so the UI doesn't confuse users by counting the phone as a person
-    const humanCount = proctorCamera ? participantCount - 1 : participantCount;
+   // 2. Filter out the proctor to get ONLY the humans
+    const humanParticipants = participants.filter(p => p.userId !== 'proctor_camera_01');
 
+    // 3. THE FIX: Use a JavaScript 'Set' to count only UNIQUE human IDs.
+    // Even if you have 3 "Ghost" connections from hot-reloading, it will only count you once!
+    const humanCount = new Set(humanParticipants.map(p => p.userId)).size;
     if (callingState === CallingState.JOINING) {
         return (
             <div className="h-full flex items-center justify-center">
@@ -119,7 +122,7 @@ function VideoCallUI({ chatClient, channel }) {
                                             <MessageInput />
                                         </Window>
                                         <Thread />
-                                    </Channel>
+                                     </Channel>
                                 </Chat>
                             </div>
                         </>

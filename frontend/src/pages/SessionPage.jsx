@@ -3,7 +3,7 @@ import axiosInstance from "../lib/axios";
 import { useUser } from "@clerk/clerk-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { useEndSession, useJoinSession, useSessionById } from "../hooks/useSessions";
+import { useEndSession, useSessionById } from "../hooks/useSessions";
 import { PROBLEMS } from "../data/problems";
 import { executeCode } from "../lib/piston";
 import Navbar from "../components/Navbar";
@@ -26,7 +26,6 @@ function SessionPage() {
 
     const { data: sessionData, isLoading: loadingSession, refetch } = useSessionById(id);
 
-    const joinSessionMutation = useJoinSession();
     const endSessionMutation = useEndSession();
 
     const session = sessionData?.session;
@@ -52,14 +51,12 @@ function SessionPage() {
     const [proctorPayload, setProctorPayload] = useState(null);
 
     // Fetch the token using your built-in Axios configuration
-    // Fetch the token using your built-in Axios configuration
     useEffect(() => {
         if (isParticipant && session?.status === "active" && session?.callId) {
             const fetchProctorToken = async () => {
                 try {
                     const response = await axiosInstance.get('/sessions/proctor-token');
                     
-                    // THE FIX IS HERE: We MUST use session.callId, not the database id!
                     const jsonPayload = JSON.stringify({
                         callId: session.callId, 
                         token: response.data.token
@@ -75,15 +72,16 @@ function SessionPage() {
     }, [isParticipant, session?.status, session?.callId]);
     // ----------------------------
 
-    // auto-join session if user is not already a participant and not the host
+    // --- NEW SECURITY GATEKEEPER ---
+    // If the room loads and the user is neither the host nor the pre-authorized participant, kick them out!
     useEffect(() => {
         if (!session || !user || loadingSession) return;
-        if (isHost || isParticipant) return;
-
-        joinSessionMutation.mutate(id, { onSuccess: refetch });
-
-        // remove the joinSessionMutation, refetch from dependencies to avoid infinite loop
-    }, [session, user, loadingSession, isHost, isParticipant, id]);
+        
+        if (!isHost && !isParticipant) {
+            navigate("/dashboard");
+        }
+    }, [session, user, loadingSession, isHost, isParticipant, navigate]);
+    // -------------------------------
 
     // redirect the "participant" when session ends
     useEffect(() => {
@@ -146,6 +144,31 @@ function SessionPage() {
                                                 <h1 className="text-3xl font-bold text-base-content">
                                                     {session?.problem || "Loading..."}
                                                 </h1>
+
+                                                {/* --- NEW: INTERVIEW CREDENTIALS BOX --- */}
+                                                <div className="mt-4 mb-4 p-4 bg-base-200 border border-primary/20 rounded-xl inline-block shadow-sm">
+                                                    <p className="text-xs text-base-content/60 uppercase tracking-wider font-bold mb-2">
+                                                        Interview Credentials
+                                                    </p>
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-sm font-semibold text-base-content/80">Room ID:</span>
+                                                            <span className="bg-primary/10 text-primary px-2 py-1 rounded font-mono font-bold tracking-widest text-lg">
+                                                                {session?.sessionId || "Generating..."}
+                                                            </span>
+                                                        </div>
+                                                        {isHost && (
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm font-semibold text-base-content/80">Password:</span>
+                                                                <span className="bg-secondary/10 text-secondary px-2 py-1 rounded font-mono font-bold tracking-widest">
+                                                                    {session?.password || "..."}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                {/* -------------------------------------- */}
+
                                                 {problemData?.category && (
                                                     <p className="text-base-content/60 mt-1">{problemData.category}</p>
                                                 )}
@@ -154,7 +177,7 @@ function SessionPage() {
                                                     {session?.participant ? 2 : 1}/2 participants
                                                 </p>
 
-                                                {/* NEW PROCTORING QR CODE - Participant View Only */}
+                                                {/* PROCTORING QR CODE - Participant View Only */}
                                                 {isParticipant && session?.status === "active" && proctorPayload && (
                                                     <div className="mt-4 p-4 bg-base-200 border border-primary/20 rounded-xl flex items-center gap-4 inline-flex">
                                                         <div className="bg-white p-2 rounded-lg shadow-sm">

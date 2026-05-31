@@ -31,6 +31,15 @@ const sessionSchema = new mongoose.Schema(
             type: String,
             default: "",
         },
+        sessionId: {
+            type: String,
+            unique: true,
+            required: true
+        },
+        password: {
+            type: String,
+            required: true
+        },
     },
     { timestamps: true }
 );

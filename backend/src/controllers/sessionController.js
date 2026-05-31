@@ -3,21 +3,38 @@ import Session from "../models/Session.js";
 
 export async function createSession(req, res) {
     try {
-        const { problem, difficulty } = req.body;
+        // 1. Pull password from the frontend request
+        const { problem, difficulty, password } = req.body;
         const userId = req.user._id;
         const clerkId = req.user.clerkId;
 
         if (!problem || !difficulty) {
             return res.status(400).json({ message: "Problem and difficulty are required" });
         }
+        
+        // 2. Enforce the password requirement
+        if (!password) {
+            return res.status(400).json({ message: "Password is required to secure the interview" });
+        }
+
         if (!["easy", "medium", "hard"].includes(difficulty)) {
             return res.status(400).json({ message: "Invalid difficulty value" });
         }
-        // generate a unique call id for stream video
+        
+        // 3. Generate a clean, 6-digit readable Session ID for the student
+        const generatedSessionId = Math.floor(100000 + Math.random() * 900000).toString();
+        
         const callId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-        // create session in db
-        const session = await Session.create({ problem, difficulty, host: userId, callId });
+        // 4. Save the generated ID and password in the database
+        const session = await Session.create({ 
+            problem, 
+            difficulty, 
+            host: userId, 
+            callId,
+            sessionId: generatedSessionId,
+            password 
+        });
 
         // create stream video call
         await streamClient.video.call("default", callId).getOrCreate({
@@ -94,29 +111,34 @@ export async function getSessionById(req, res) {
     }
 }
 
+// ---------------------------------------------------------
+// EXISTING JOIN ROUTE (Updated with your Race Condition Fix)
+// ---------------------------------------------------------
 export async function joinSession(req, res) {
     try {
         const { id } = req.params;
         const userId = req.user._id;
         const clerkId = req.user.clerkId;
 
-        const session = await Session.findById(id);
+        // Your exact race-condition fix implemented here
+        const session = await Session.findOneAndUpdate(
+            {
+                _id: id,
+                status: "active",
+                participant: null,
+                host: { $ne: userId },
+            },
+            {
+                $set: { participant: userId },
+            },
+            {
+                new: true,
+            }
+        );
 
-        if (!session) return res.status(404).json({ message: "Session not found" });
-
-        if (session.status !== "active") {
-            return res.status(400).json({ message: "Cannot join a completed session" });
+        if (!session) {
+            return res.status(409).json({ message: "Session is full, unavailable, or you are the host." });
         }
-
-        if (session.host.toString() === userId.toString()) {
-            return res.status(400).json({ message: "Host cannot join their own session as participant" });
-        }
-
-        // check if session is already full - has a participant
-        if (session.participant) return res.status(409).json({ message: "Session is full" });
-
-        session.participant = userId;
-        await session.save();
 
         const channel = chatClient.channel("messaging", session.callId);
         await channel.addMembers([clerkId]);
@@ -125,6 +147,63 @@ export async function joinSession(req, res) {
     } catch (error) {
         console.log("Error in joinSession controller:", error.message);
         res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+// ---------------------------------------------------------
+// NEW ROUTE: Validate 6-Digit ID & Password from Dashboard
+// ---------------------------------------------------------
+export async function verifyAndJoinSession(req, res) {
+    try {
+        const { sessionId, password } = req.body;
+        const userId = req.user._id;
+        const clerkId = req.user.clerkId;
+
+        // 1. Find the session by the 6-digit code
+        const targetSession = await Session.findOne({ sessionId, status: "active" });
+        
+        if (!targetSession) {
+            return res.status(404).json({ message: "Active interview session not found." });
+        }
+
+        // 2. Verify the password
+        if (targetSession.password !== password) {
+            return res.status(401).json({ message: "Incorrect interview password." });
+        }
+
+        // 3. Atomically add the user as a participant (using your race condition fix)
+        const session = await Session.findOneAndUpdate(
+            {
+                _id: targetSession._id,
+                status: "active",
+                $or: [{ participant: null }, { participant: userId }], // Allow if they already joined
+                host: { $ne: userId },
+            },
+            {
+                $set: { participant: userId },
+            },
+            {
+                new: true,
+            }
+        );
+
+        if (!session) {
+            return res.status(409).json({ message: "Session is already full or you are the host." });
+        }
+
+        // 4. Add them to the Stream Chat
+        const channel = chatClient.channel("messaging", session.callId);
+        await channel.addMembers([clerkId]);
+
+        // Return the MongoDB Object ID so the frontend knows which URL to navigate to
+        res.status(200).json({ 
+            success: true, 
+            message: "Access granted", 
+            roomObjectId: session._id 
+        });
+    } catch (error) {
+        console.log("Error in verifyAndJoinSession:", error.message);
+        res.status(500).json({ message: "Error joining session" });
     }
 }
 
@@ -165,24 +244,13 @@ export async function endSession(req, res) {
     }
 }
 
-// in line 101 to 117 we add this to remove race condition
-// const session = await Session.findOneAndUpdate(
-//     {
-//         _id: id,
-//         status: "active",
-//         participant: null,
-//         host: { $ne: userId },
-//     },
-//     {
-//         $set: { participant: userId },
-//     },
-//     {
-//         new: true,
-//     }
-// );
-
-// if (!session) {
-//     return res
-//         .status(409)
-//         .json({ message: "Session is full or unavailable" });
-// }
+export async function getProctorToken(req, res) {
+    try {
+        const proctorId = "proctor_camera_01";
+        const token = chatClient.createToken(proctorId);
+        res.status(200).json({ token });
+    } catch (error) {
+        console.log("Error in getProctorToken controller:", error.message);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}

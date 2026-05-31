@@ -20,6 +20,7 @@
     "canvas-confetti": "^1.9.3",
     "date-fns": "^4.3.0",
     "lucide-react": "^1.16.0",
+    "qrcode.react": "^4.2.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-hot-toast": "^2.6.0",

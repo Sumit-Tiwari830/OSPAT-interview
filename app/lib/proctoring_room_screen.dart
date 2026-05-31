@@ -1,10 +1,11 @@
+import 'dart:async'; // <-- ADDED: Needed for the event listener
 import 'package:flutter/material.dart';
 import 'package:stream_video_flutter/stream_video_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ProctoringRoomScreen extends StatefulWidget {
   final String callId;
-  final String token; // The new token parameter!
+  final String token; 
 
   const ProctoringRoomScreen({super.key, required this.callId, required this.token});
 
@@ -16,6 +17,8 @@ class _ProctoringRoomScreenState extends State<ProctoringRoomScreen> {
   Call? _call;
   bool _isMicrophoneOn = true;
   bool _isCameraOn = true;
+  
+  StreamSubscription? _eventSubscription; // <-- ADDED: To listen for call ending
 
   // --- DaisyUI / Tailwind Color Palette ---
   final Color bgBase100 = const Color(0xFF1D232A);
@@ -34,31 +37,56 @@ class _ProctoringRoomScreenState extends State<ProctoringRoomScreen> {
   Future<void> _initializeProctoringCall() async {
     final streamApiKey = dotenv.env['STREAM_API_KEY'] ?? '';
 
-    // Define this phone as the Proctor
+    // RESTORED: Your original working User code
     final proctorUser = User(
       info: UserInfo(id: 'proctor_camera_01', name: 'Mobile Proctor', role: 'admin'),
     );
 
-    // Initialize the Stream Client right here using the parsed token
     final videoClient = StreamVideo(
       streamApiKey,
       user: proctorUser,
       userToken: widget.token,
     );
     
+    // RESTORED: Your original working StreamCallType
     final call = videoClient.makeCall(
       callType: StreamCallType.defaultType(), 
       id: widget.callId,
     );
     
     await call.join();
+
+    // --- THE ONLY FIX WE ADDED: Safely listening for the call to end ---
+    _eventSubscription = videoClient.events.listen((event) {
+      final eventName = event.runtimeType.toString();
+      // By checking the string name, we avoid any import/type errors!
+      if (eventName.contains('CallEnded') || eventName.contains('CallDeleted')) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('The interviewer has ended the session.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+          Navigator.of(context).pop(); // Go back to QR scanner automatically
+        }
+      }
+    });
+    // -------------------------------------------------------------------
     
     if (mounted) {
       setState(() => _call = call);
     }
   }
 
-  // ... KEEP YOUR ENTIRE build(BuildContext context) METHOD EXACTLY AS IT IS BELOW ...
+  @override
+  void dispose() {
+    _eventSubscription?.cancel(); // Always clean up listeners!
+    _call?.leave(); // Safely disconnects if they use the Android Back button
+    super.dispose();
+  }
+
+  // RESTORED: Your exact original build method and PartialCallStateBuilder
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -135,7 +163,6 @@ class _ProctoringRoomScreenState extends State<ProctoringRoomScreen> {
             ),
 
             // --- VIDEO FEED AREA ---
-           // --- VIDEO FEED AREA ---
             Expanded(
               child: Container(
                 color: bgBase200, 
@@ -156,7 +183,6 @@ class _ProctoringRoomScreenState extends State<ProctoringRoomScreen> {
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(14),
-                    // FIX: Using Stream's official state builder to safely load the camera
                     child: _call != null 
                         ? PartialCallStateBuilder(
                             call: _call!,
@@ -178,7 +204,6 @@ class _ProctoringRoomScreenState extends State<ProctoringRoomScreen> {
                                 );
                               }
                               
-                              // StreamCallParticipant automatically renders the video track
                               return StreamCallParticipant(
                                 call: _call!,
                                 participant: localParticipant,

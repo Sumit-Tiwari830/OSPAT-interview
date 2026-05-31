@@ -19,10 +19,48 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text('Scan Interview Room QR'),
-        backgroundColor: Colors.blueGrey[900],
-        foregroundColor: Colors.white,
+    appBar: AppBar(
+        centerTitle: true,
+        backgroundColor: const Color(0xFF1D232A),
+        elevation: 1,
+        shadowColor: Colors.black,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Recreating Sumit's Gradient Logo Box
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                gradient: const LinearGradient(
+                  colors: [
+                    Color(0xFFFF7A85), // Pinkish
+                    Color(0xFF8A64FF), // Purplish
+                    Color(0xFF38BDF8), // Cyan/Blue
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: const Icon(
+                Icons.auto_awesome, // Flutter's built-in Sparkles icon
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            // The OSPAT Text
+            const Text(
+              'OSPAT',
+              style: TextStyle(
+                color: Color(0xFFE082FF), // Matching the pink text
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ],
+        ),
       ),
       body: Stack(
         children: [

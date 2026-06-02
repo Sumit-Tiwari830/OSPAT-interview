@@ -2,7 +2,7 @@ import axios from './axios';
 
 export const executeCode = async (language, code, input = "") => {
     try {
-        const response = await axios.post('/api/code/run', {
+        const response = await axios.post('/code/run', {
             language,
             code,
             input

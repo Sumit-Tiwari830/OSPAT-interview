@@ -46,5 +46,5 @@ export const executeCode = async (req, res) => {
     } catch (error) {
         console.error("Execution Service Error:", error);
         return res.status(500).json({ error: "Failed to execute code on the server." });
-    }
+        }
 };

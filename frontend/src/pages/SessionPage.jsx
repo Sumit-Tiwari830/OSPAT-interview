@@ -44,7 +44,8 @@ function SessionPage() {
         ? Object.values(PROBLEMS).find((p) => p.title === session.problem)
         : null;
 
-    const [selectedLanguage, setSelectedLanguage] = useState("javascript");
+    // CHANGED: Default selected language to python
+    const [selectedLanguage, setSelectedLanguage] = useState("python");
     const [code, setCode] = useState(problemData?.starterCode?.[selectedLanguage] || "");
 
     // --- NEW PROCTORING LOGIC ---
@@ -97,8 +98,8 @@ function SessionPage() {
         }
     }, [problemData, selectedLanguage]);
 
-    const handleLanguageChange = (e) => {
-        const newLang = e.target.value;
+    // BUG FIX: Accept `newLang` string directly, since CodeEditorPanel passes a string, not an event object.
+    const handleLanguageChange = (newLang) => {
         setSelectedLanguage(newLang);
         // use problem-specific starter code
         const starterCode = problemData?.starterCode?.[newLang] || "";

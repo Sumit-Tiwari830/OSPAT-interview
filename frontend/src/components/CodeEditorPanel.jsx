@@ -17,12 +17,14 @@ function CodeEditorPanel({
     onRunCode,
 }) {
     // Grabs whichever state variable your parent page is actually passing down
-    const currentLang = language || selectedLanguage || "javascript";
+    // Default changed to python since javascript is removed
+    const currentLang = language || selectedLanguage || "python";
 
     const handleLanguageSelect = (e) => {
         const newLang = e.target.value;
         
         // Broadcasts the change to whichever wire the parent is actually listening to!
+        // NOTE: This passes the string `newLang`, NOT the event!
         if (onLanguageChange) onLanguageChange(newLang);
         if (onChangeLanguage) onChangeLanguage(newLang);
         if (setLanguage) setLanguage(newLang);
@@ -37,7 +39,7 @@ function CodeEditorPanel({
                     onChange={handleLanguageSelect}
                     className="bg-gray-800 text-white rounded px-3 py-1 outline-none text-sm border border-gray-700 font-semibold cursor-pointer"
                 >
-                    <option value="javascript">JavaScript</option>
+                    {/* Removed JavaScript option */}
                     <option value="python">Python 3</option>
                     <option value="cpp">C++ (GCC)</option>
                     <option value="c">C (GCC)</option>
@@ -75,4 +77,4 @@ function CodeEditorPanel({
     );
 }
 
-export default CodeEditorPanel; 
+export default CodeEditorPanel;

@@ -1,5 +1,5 @@
 import Editor from "@monaco-editor/react";
-import { Loader2Icon, PlayIcon } from "lucide-react";
+import { Loader2Icon, PlayIcon, BookOpenIcon, TerminalIcon } from "lucide-react";
 import { LANGUAGE_CONFIG } from "../data/problems";
 
 function CodeEditorPanel({
@@ -9,10 +9,40 @@ function CodeEditorPanel({
     onLanguageChange,
     onCodeChange,
     onRunCode,
+    compilerMode,
+    onCompilerModeChange,
+    problemTitle,
 }) {
     return (
         <div className="h-full bg-base-300 flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 bg-base-100 border-t border-base-300">
+            {/* TABS HEADER */}
+            <div className="flex border-b border-base-300 bg-base-200/50">
+                <button
+                    onClick={() => onCompilerModeChange("problem")}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+                        compilerMode === "problem"
+                            ? "border-primary text-primary bg-base-100"
+                            : "border-transparent text-base-content/60 hover:text-base-content hover:bg-base-200/30"
+                    }`}
+                >
+                    <BookOpenIcon className="size-4" />
+                    <span>Problem: {problemTitle || "Active Problem"}</span>
+                </button>
+                <button
+                    onClick={() => onCompilerModeChange("playground")}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+                        compilerMode === "playground"
+                            ? "border-primary text-primary bg-base-100"
+                            : "border-transparent text-base-content/60 hover:text-base-content hover:bg-base-200/30"
+                    }`}
+                >
+                    <TerminalIcon className="size-4" />
+                    <span>Free Playground</span>
+                </button>
+            </div>
+
+            {/* TOOLBAR */}
+            <div className="flex items-center justify-between px-4 py-3 bg-base-100 border-b border-base-300">
                 <div className="flex items-center gap-3">
                     <img
                         src={LANGUAGE_CONFIG[selectedLanguage].icon}
@@ -43,6 +73,7 @@ function CodeEditorPanel({
                 </button>
             </div>
 
+            {/* EDITOR */}
             <div className="flex-1">
                 <Editor
                     height={"100%"}

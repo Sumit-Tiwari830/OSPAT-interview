@@ -7,8 +7,9 @@ import {
     getMyRecentSessions,
     getSessionById,
     joinSession,
-    verifyAndJoinSession, // <-- Added
-    getProctorToken       // <-- Added (from our earlier QR code work!)
+    verifyAndJoinSession,
+    getProctorToken,
+    runCode
 } from "../controllers/sessionController.js";
 
 const router = express.Router();
@@ -20,6 +21,7 @@ router.get("/my-recent", protectRoute, getMyRecentSessions);
 // --- NEW ROUTES ---
 router.get("/proctor-token", getProctorToken); 
 router.post("/verify-join", protectRoute, verifyAndJoinSession); 
+router.post("/run-code", protectRoute, runCode); 
 // ------------------
 
 router.get("/:id", protectRoute, getSessionById);

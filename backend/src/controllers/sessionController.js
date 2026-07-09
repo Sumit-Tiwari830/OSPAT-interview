@@ -1,5 +1,6 @@
 import { chatClient, streamClient } from "../lib/stream.js";
 import Session from "../models/Session.js";
+import { ENV } from "../lib/env.js";
 
 export async function createSession(req, res) {
     try {
@@ -252,5 +253,59 @@ export async function getProctorToken(req, res) {
     } catch (error) {
         console.log("Error in getProctorToken controller:", error.message);
         res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+const COMPILER_IDS = {
+    javascript: "typescript-deno",
+    python: "python-3.14",
+    java: "openjdk-25",
+    "c++": "g++-15",
+    cpp: "g++-15",
+    c: "gcc-15"
+};
+
+export async function runCode(req, res) {
+    try {
+        const { language, code, input } = req.body;
+
+        if (!language || !code) {
+            return res.status(400).json({ message: "Language and code are required" });
+        }
+
+        const compilerId = COMPILER_IDS[language.toLowerCase()];
+        if (!compilerId) {
+            return res.status(400).json({ message: `Unsupported language: ${language}` });
+        }
+
+        const requestBody = {
+            compiler: compilerId,
+            code: code
+        };
+        if (input) {
+            requestBody.input = input;
+        }
+
+        const response = await fetch("https://api.onlinecompiler.io/api/run-code-sync/", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': ENV.ONLINECOMPILER_KEY
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (response.status === 429) {
+            return res.status(429).json({ error: "Too many requests! Please wait a moment." });
+        }
+        if (!response.ok) {
+            return res.status(response.status).json({ error: `API Error! status: ${response.status}` });
+        }
+
+        const data = await response.json();
+        res.status(200).json(data);
+    } catch (error) {
+        console.error("Error in runCode backend:", error.message);
+        res.status(500).json({ message: "Internal Server Error during code execution" });
     }
 }

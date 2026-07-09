@@ -17,11 +17,23 @@ import useStreamClient from "../hooks/useStreamClient";
 import { StreamCall, StreamVideo } from "@stream-io/video-react-sdk";
 import VideoCallUI from "../components/VideoCallUI";
 
+const PLAYGROUND_STARTER_CODES = {
+    javascript: `// Write your JavaScript/TypeScript code here\nconsole.log("Hello, World!");\n`,
+    python: `# Write your Python code here\nprint("Hello, World!")\n`,
+    java: `// Write your Java code here\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}\n`,
+    cpp: `// Write your C++ code here\n#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, World!" << endl;\n    return 0;\n}\n`
+};
+
 function SessionPage() {
     const navigate = useNavigate();
     const { id } = useParams();
     const { user } = useUser();
-    const [output, setOutput] = useState(null);
+    const [compilerMode, setCompilerMode] = useState("problem");
+    const [problemCode, setProblemCode] = useState("");
+    const [playgroundCode, setPlaygroundCode] = useState(PLAYGROUND_STARTER_CODES.javascript);
+    const [customInput, setCustomInput] = useState("");
+    const [problemOutput, setProblemOutput] = useState(null);
+    const [playgroundOutput, setPlaygroundOutput] = useState(null);
     const [isRunning, setIsRunning] = useState(false);
 
     const { data: sessionData, isLoading: loadingSession, refetch } = useSessionById(id);
@@ -45,7 +57,6 @@ function SessionPage() {
         : null;
 
     const [selectedLanguage, setSelectedLanguage] = useState("javascript");
-    const [code, setCode] = useState(problemData?.starterCode?.[selectedLanguage] || "");
 
     // --- NEW PROCTORING LOGIC ---
     const [proctorPayload, setProctorPayload] = useState(null);
@@ -93,26 +104,37 @@ function SessionPage() {
     // update code when problem loads or changes
     useEffect(() => {
         if (problemData?.starterCode?.[selectedLanguage]) {
-            setCode(problemData.starterCode[selectedLanguage]);
+            setProblemCode(problemData.starterCode[selectedLanguage]);
         }
     }, [problemData, selectedLanguage]);
 
     const handleLanguageChange = (e) => {
         const newLang = e.target.value;
         setSelectedLanguage(newLang);
-        // use problem-specific starter code
-        const starterCode = problemData?.starterCode?.[newLang] || "";
-        setCode(starterCode);
-        setOutput(null);
+        
+        if (compilerMode === "problem") {
+            const starterCode = problemData?.starterCode?.[newLang] || "";
+            setProblemCode(starterCode);
+            setProblemOutput(null);
+        } else {
+            setPlaygroundCode(PLAYGROUND_STARTER_CODES[newLang]);
+            setPlaygroundOutput(null);
+        }
     };
 
     const handleRunCode = async () => {
         setIsRunning(true);
-        setOutput(null);
 
         try {
-            const result = await executeCode(selectedLanguage, code);
-            setOutput(result);
+            if (compilerMode === "problem") {
+                setProblemOutput(null);
+                const result = await executeCode(selectedLanguage, problemCode);
+                setProblemOutput(result);
+            } else {
+                setPlaygroundOutput(null);
+                const result = await executeCode(selectedLanguage, playgroundCode, customInput);
+                setPlaygroundOutput(result);
+            }
         } finally {
             setIsRunning(false);
         }
@@ -304,18 +326,49 @@ function SessionPage() {
                                     <Panel defaultSize={70} minSize={30}>
                                         <CodeEditorPanel
                                             selectedLanguage={selectedLanguage}
-                                            code={code}
+                                            code={compilerMode === "problem" ? problemCode : playgroundCode}
                                             isRunning={isRunning}
                                             onLanguageChange={handleLanguageChange}
-                                            onCodeChange={(value) => setCode(value)}
+                                            onCodeChange={(value) => {
+                                                if (compilerMode === "problem") {
+                                                    setProblemCode(value);
+                                                } else {
+                                                    setPlaygroundCode(value);
+                                                }
+                                            }}
                                             onRunCode={handleRunCode}
+                                            compilerMode={compilerMode}
+                                            onCompilerModeChange={(mode) => setCompilerMode(mode)}
+                                            problemTitle={session?.problem}
                                         />
                                     </Panel>
 
                                     <PanelResizeHandle className="h-2 bg-base-300 hover:bg-primary transition-colors cursor-row-resize" />
 
                                     <Panel defaultSize={30} minSize={15}>
-                                        <OutputPanel output={output} />
+                                        {compilerMode === "problem" ? (
+                                            <OutputPanel output={problemOutput} />
+                                        ) : (
+                                            <div className="h-full bg-base-100 flex flex-col md:flex-row">
+                                                {/* Left Half: Custom Input (stdin) */}
+                                                <div className="flex-1 border-b md:border-b-0 md:border-r border-base-300 flex flex-col min-w-[200px]">
+                                                    <div className="px-4 py-2 bg-base-200 border-b border-base-300 font-semibold text-sm flex items-center justify-between text-base-content/85">
+                                                        <span>Custom Input (stdin)</span>
+                                                        <span className="text-[10px] bg-base-300 px-1.5 py-0.5 rounded text-base-content/60 uppercase font-mono">stdin</span>
+                                                    </div>
+                                                    <textarea
+                                                        value={customInput}
+                                                        onChange={(e) => setCustomInput(e.target.value)}
+                                                        placeholder="Provide custom input for execution here..."
+                                                        className="flex-1 w-full p-4 bg-base-100 text-sm font-mono focus:outline-none resize-none text-base-content"
+                                                    />
+                                                </div>
+                                                {/* Right Half: Output (stdout/stderr) */}
+                                                <div className="flex-1 flex flex-col min-w-[200px]">
+                                                    <OutputPanel output={playgroundOutput} />
+                                                </div>
+                                            </div>
+                                        )}
                                     </Panel>
                                 </PanelGroup>
                             </Panel>

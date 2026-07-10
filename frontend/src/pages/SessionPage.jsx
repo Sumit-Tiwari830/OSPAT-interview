@@ -21,7 +21,7 @@ const PLAYGROUND_STARTER_CODES = {
     javascript: `// Write your JavaScript/TypeScript code here\nconsole.log("Hello, World!");\n`,
     python: `# Write your Python code here\nprint("Hello, World!")\n`,
     java: `// Write your Java code here\npublic class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}\n`,
-    cpp: `// Write your C++ code here\n#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello, World!" << endl;\n    return 0;\n}\n`
+    cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write your code here\n    return 0;\n}`
 };
 
 function SessionPage() {

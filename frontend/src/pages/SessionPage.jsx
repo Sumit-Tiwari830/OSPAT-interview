@@ -9,9 +9,10 @@ import { executeCode } from "../lib/piston";
 import Navbar from "../components/Navbar";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { getDifficultyBadgeClass } from "../lib/utils";
-import { Loader2Icon, LogOutIcon, PhoneOffIcon } from "lucide-react";
+import { Loader2Icon, LogOutIcon, PhoneOffIcon, ShieldAlertIcon, ShieldCheckIcon } from "lucide-react";
 import CodeEditorPanel from "../components/CodeEditorPanel";
 import OutputPanel from "../components/OutputPanel";
+import { useUpdateSessionSettings } from "../hooks/useUpdateSession";
 
 import useStreamClient from "../hooks/useStreamClient";
 import { StreamCall, StreamVideo } from "@stream-io/video-react-sdk";
@@ -37,12 +38,16 @@ function SessionPage() {
     const [isRunning, setIsRunning] = useState(false);
 
     const { data: sessionData, isLoading: loadingSession, refetch } = useSessionById(id);
-
     const endSessionMutation = useEndSession();
+    const updateSettingsMutation = useUpdateSessionSettings();
 
     const session = sessionData?.session;
     const isHost = session?.host?.clerkId === user?.id;
     const isParticipant = session?.participant?.clerkId === user?.id;
+
+    // --- PROCTORING: flags state for host view ---
+    const [flags, setFlags] = useState([]);
+    const [showFlags, setShowFlags] = useState(false);
 
     const { call, channel, chatClient, isInitializingCall, streamClient } = useStreamClient(
         session,
@@ -82,6 +87,77 @@ function SessionPage() {
         }
     }, [isParticipant, session?.status, session?.callId]);
     // ----------------------------
+    // ----------------------------
+
+    // --- PROCTORING: fullscreen enforcement (participant only) ---
+    const [fullscreenWarning, setFullscreenWarning] = useState(false);
+
+    // Step 1: Auto-enter fullscreen when fullscreenRequired becomes true
+    useEffect(() => {
+        if (!isParticipant || !session?.fullscreenRequired || loadingSession) return;
+        if (document.fullscreenElement) return; // already fullscreen
+
+        const enterFullscreen = async () => {
+            try {
+                await document.documentElement.requestFullscreen();
+                setFullscreenWarning(false);
+            } catch (err) {
+                console.warn("Fullscreen request denied:", err);
+            }
+        };
+        enterFullscreen();
+    }, [isParticipant, session?.fullscreenRequired, loadingSession]);
+
+    // Step 2: Detect violations and send flags
+    useEffect(() => {
+        if (!isParticipant || !session?.fullscreenRequired || loadingSession) return;
+
+        // Debounce to avoid duplicate flags from rapid events
+        let flagTimeout = null;
+        const sendFlag = (reason) => {
+            clearTimeout(flagTimeout);
+            flagTimeout = setTimeout(async () => {
+                try {
+                    await axiosInstance.post('/flags', {
+                        sessionId: session.sessionId,
+                        reason,
+                    });
+                    console.log('Flag sent:', reason);
+                } catch (err) {
+                    console.error('Failed to send flag:', err);
+                }
+            }, 300);
+        };
+
+        // Fullscreen exit handler
+        const handleFullscreenChange = () => {
+            if (!document.fullscreenElement) {
+                setFullscreenWarning(true);
+                sendFlag('Exited fullscreen');
+            } else {
+                setFullscreenWarning(false);
+            }
+        };
+
+        // Tab switch / window minimize handler (more reliable than blur)
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                sendFlag('Switched tab or minimized window');
+            }
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        return () => {
+            clearTimeout(flagTimeout);
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, [isParticipant, session?.fullscreenRequired, session?.sessionId, loadingSession]);
+    // -----------------------------------------------------------
+
+
 
     // --- NEW SECURITY GATEKEEPER ---
     // If the room loads and the user is neither the host nor the pre-authorized participant, kick them out!
@@ -107,6 +183,22 @@ function SessionPage() {
             setProblemCode(problemData.starterCode[selectedLanguage]);
         }
     }, [problemData, selectedLanguage]);
+
+    // --- HOST: poll flags from backend ---
+    useEffect(() => {
+        if (!isHost || !session?.sessionId || session?.status !== "active") return;
+        const fetchFlags = async () => {
+            try {
+                const res = await axiosInstance.get(`/flags/${session.sessionId}`);
+                setFlags(res.data.flags || []);
+            } catch (err) {
+                console.error("Failed to fetch flags:", err);
+            }
+        };
+        fetchFlags();
+        const interval = setInterval(fetchFlags, 8000);
+        return () => clearInterval(interval);
+    }, [isHost, session?.sessionId, session?.status]);
 
     const handleLanguageChange = (e) => {
         const newLang = e.target.value;
@@ -151,6 +243,34 @@ function SessionPage() {
         <div className="h-screen bg-base-100 flex flex-col">
             <Navbar />
 
+            {/* --- FULLSCREEN WARNING BANNER (participant only) --- */}
+            {isParticipant && session?.fullscreenRequired && fullscreenWarning && (
+                <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center">
+                    <div className="bg-error text-error-content rounded-2xl p-8 max-w-md text-center shadow-2xl">
+                        <div className="text-5xl mb-4">⚠️</div>
+                        <h2 className="text-2xl font-bold mb-2">You Left Fullscreen!</h2>
+                        <p className="text-sm opacity-80 mb-6">
+                            This session requires fullscreen mode. A violation flag has been recorded.
+                            Please return to fullscreen immediately.
+                        </p>
+                        <button
+                            className="btn btn-lg btn-neutral w-full"
+                            onClick={async () => {
+                                try {
+                                    await document.documentElement.requestFullscreen();
+                                    setFullscreenWarning(false);
+                                } catch (e) {
+                                    console.warn("Could not re-enter fullscreen:", e);
+                                }
+                            }}
+                        >
+                            🔲 Return to Fullscreen
+                        </button>
+                    </div>
+                </div>
+            )}
+            {/* --------------------------------------------------- */}
+
             <div className="flex-1">
                 <PanelGroup direction="horizontal">
                     {/* LEFT PANEL - CODE EDITOR & PROBLEM DETAILS */}
@@ -191,9 +311,79 @@ function SessionPage() {
                                                 </div>
                                                 {/* -------------------------------------- */}
 
+                                                {/* --- PROCTORING PANEL (Host only) --- */}
+                                                {isHost && session?.status === "active" && (
+                                                    <div className="mt-4 p-4 bg-base-200 border border-warning/30 rounded-xl space-y-3">
+                                                        {/* Header row */}
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-2">
+                                                                {flags.length > 0 ? (
+                                                                    <ShieldAlertIcon className="w-4 h-4 text-warning" />
+                                                                ) : (
+                                                                    <ShieldCheckIcon className="w-4 h-4 text-success" />
+                                                                )}
+                                                                <span className="text-sm font-bold text-base-content/80">
+                                                                    Proctoring
+                                                                </span>
+                                                                {flags.length > 0 && (
+                                                                    <span className="badge badge-warning badge-sm">
+                                                                        {flags.length} flag{flags.length > 1 ? "s" : ""}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <button
+                                                                className="btn btn-xs btn-ghost"
+                                                                onClick={() => setShowFlags((v) => !v)}
+                                                            >
+                                                                {showFlags ? "Hide" : "View flags"}
+                                                            </button>
+                                                        </div>
+
+                                                        {/* Fullscreen toggle */}
+                                                        <label className="flex items-center gap-3 cursor-pointer">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="toggle toggle-warning toggle-sm"
+                                                                checked={session?.fullscreenRequired || false}
+                                                                onChange={(e) =>
+                                                                    updateSettingsMutation.mutate({
+                                                                        id: session._id,
+                                                                        settings: { fullscreenRequired: e.target.checked },
+                                                                    })
+                                                                }
+                                                                disabled={updateSettingsMutation.isPending}
+                                                            />
+                                                            <span className="text-xs text-base-content/70">
+                                                                Force fullscreen on candidate
+                                                            </span>
+                                                        </label>
+
+                                                        {/* Flag list */}
+                                                        {showFlags && (
+                                                            <div className="max-h-40 overflow-y-auto space-y-1">
+                                                                {flags.length === 0 ? (
+                                                                    <p className="text-xs text-base-content/50 italic">No violations detected.</p>
+                                                                ) : (
+                                                                    flags.map((f, i) => (
+                                                                        <div key={f._id || i} className="flex items-center justify-between bg-base-100 rounded px-3 py-1.5 text-xs">
+                                                                            <span className="text-warning font-semibold">⚑ {f.reason}</span>
+                                                                            <span className="text-base-content/40">
+                                                                                {new Date(f.createdAt).toLocaleTimeString()}
+                                                                            </span>
+                                                                        </div>
+                                                                    ))
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                {/* ------------------------------------------- */}
+
+
                                                 {problemData?.category && (
                                                     <p className="text-base-content/60 mt-1">{problemData.category}</p>
                                                 )}
+
                                                 <p className="text-base-content/60 mt-2">
                                                     Host: {session?.host?.name || "Loading..."} •{" "}
                                                     {session?.participant ? 2 : 1}/2 participants

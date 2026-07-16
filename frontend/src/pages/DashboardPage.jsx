@@ -35,16 +35,18 @@ function DashboardPage() {
                 problem: roomConfig.problem,
                 difficulty: roomConfig.difficulty.toLowerCase(),
                 password: roomConfig.password,
+                fullscreenRequired: roomConfig.fullscreenRequired || false,
             },
             {
                 onSuccess: (data) => {
                     setShowCreateModal(false);
-                    setRoomConfig({ problem: "", difficulty: "", password: "" }); // Reset
+                    setRoomConfig({ problem: "", difficulty: "", password: "", fullscreenRequired: false }); // Reset
                     navigate(`/session/${data.session._id}`);
                 },
             }
         );
     };
+
 
     const handleJoinSession = async (e) => {
         e.preventDefault();

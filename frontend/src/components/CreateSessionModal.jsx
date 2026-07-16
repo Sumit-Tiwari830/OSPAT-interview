@@ -62,6 +62,26 @@ function CreateSessionModal({
                         />
                     </div>
 
+                    {/* NEW: FULLSCREEN PROCTORING TOGGLE */}
+                    <div className="form-control">
+                        <label className="label cursor-pointer justify-start gap-4">
+                            <input
+                                type="checkbox"
+                                className="toggle toggle-primary"
+                                checked={roomConfig.fullscreenRequired || false}
+                                onChange={(e) =>
+                                    setRoomConfig({ ...roomConfig, fullscreenRequired: e.target.checked })
+                                }
+                            />
+                            <div>
+                                <span className="label-text font-semibold">Require Fullscreen</span>
+                                <p className="text-xs text-base-content/60 mt-0.5">
+                                    If enabled, candidate must stay fullscreen. Exiting triggers a flag on your side.
+                                </p>
+                            </div>
+                        </label>
+                    </div>
+
                     {/* ROOM SUMMARY */}
                     {roomConfig.problem && roomConfig.password && (
                         <div className="alert alert-success">
@@ -70,9 +90,13 @@ function CreateSessionModal({
                                 <p className="font-semibold">Room Summary:</p>
                                 <p>Problem: <span className="font-medium">{roomConfig.problem}</span></p>
                                 <p>Password set: <span className="font-medium text-emerald-800">Yes</span></p>
+                                {roomConfig.fullscreenRequired && (
+                                    <p>Proctoring: <span className="font-medium text-emerald-800">Fullscreen enforced</span></p>
+                                )}
                             </div>
                         </div>
                     )}
+
                 </div>
 
                 <div className="modal-action">

@@ -5,7 +5,7 @@ import { ENV } from "../lib/env.js";
 export async function createSession(req, res) {
     try {
         // 1. Pull password from the frontend request
-        const { problem, difficulty, password } = req.body;
+        const { problem, difficulty, password, fullscreenRequired } = req.body;
         const userId = req.user._id;
         const clerkId = req.user.clerkId;
 
@@ -34,7 +34,8 @@ export async function createSession(req, res) {
             host: userId, 
             callId,
             sessionId: generatedSessionId,
-            password 
+            password,
+            fullscreenRequired: !!fullscreenRequired, 
         });
 
         // create stream video call
@@ -307,5 +308,33 @@ export async function runCode(req, res) {
     } catch (error) {
         console.error("Error in runCode backend:", error.message);
         res.status(500).json({ message: "Internal Server Error during code execution" });
+    }
+}
+
+// ---------------------------------------------------------
+// PATCH /:id/settings — host toggles fullscreenRequired
+// ---------------------------------------------------------
+export async function updateSessionSettings(req, res) {
+    try {
+        const { id } = req.params;
+        const userId = req.user._id;
+        const { fullscreenRequired } = req.body;
+
+        const session = await Session.findById(id);
+        if (!session) return res.status(404).json({ message: "Session not found" });
+
+        if (session.host.toString() !== userId.toString()) {
+            return res.status(403).json({ message: "Only the host can change session settings" });
+        }
+
+        if (typeof fullscreenRequired === "boolean") {
+            session.fullscreenRequired = fullscreenRequired;
+        }
+
+        await session.save();
+        res.status(200).json({ session });
+    } catch (error) {
+        console.error("Error in updateSessionSettings:", error.message);
+        res.status(500).json({ message: "Internal Server Error" });
     }
 }

@@ -9,7 +9,8 @@ import {
     joinSession,
     verifyAndJoinSession,
     getProctorToken,
-    runCode
+    runCode,
+    updateSessionSettings,
 } from "../controllers/sessionController.js";
 
 const router = express.Router();
@@ -25,6 +26,7 @@ router.post("/run-code", protectRoute, runCode);
 // ------------------
 
 router.get("/:id", protectRoute, getSessionById);
+router.patch("/:id/settings", protectRoute, updateSessionSettings);
 router.post("/:id/join", protectRoute, joinSession); // (We kept this as fallback)
 router.post("/:id/end", protectRoute, endSession);
 

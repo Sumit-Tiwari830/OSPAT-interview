@@ -10,10 +10,10 @@ import { inngest, functions } from "./lib/inngest.js";
 //import { protectRoute } from "./middleware/protectRoute.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import sessionRoutes from "./routes/sessionRoute.js";
+import flagRoutes from "./routes/flagRoute.js";
+
 const app = express();
 
-//console.log('PORT:', ENV.PORT);
-//console.log('DB_URL:', ENV.DB_URL);
 const __dirname = path.resolve();
 app.use(express.json());
 app.use(cors({ origin: ENV.CLIENT_URL, credentials: true }));
@@ -22,6 +22,8 @@ app.use(clerkMiddleware());
 app.use("/api/inngest", serve({ client: inngest, functions }))
 app.use("/api/chat", chatRoutes);
 app.use("/api/sessions", sessionRoutes);
+app.use("/api/flags", flagRoutes);
+
 app.get('/health', (req, res) => {
     res.status(200).json({ message: 'Hello World health!123' });
 });
@@ -39,6 +41,7 @@ if (ENV.NODE_ENV === "production") {
         res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
     });
 }
+
 const startServer = async () => {
     try {
         if (!ENV.DB_URL) {

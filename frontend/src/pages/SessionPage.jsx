@@ -36,8 +36,13 @@ function SessionPage() {
     const [problemOutput, setProblemOutput] = useState(null);
     const [playgroundOutput, setPlaygroundOutput] = useState(null);
     const [isRunning, setIsRunning] = useState(false);
+    const [selectedLanguage, setSelectedLanguage] = useState("javascript");
+    const [proctorPayload, setProctorPayload] = useState(null);
+    const [fullscreenWarning, setFullscreenWarning] = useState(false);
+    const [flags, setFlags] = useState([]);
+    const [showFlags, setShowFlags] = useState(false);
 
-    const { data: sessionData, isLoading: loadingSession, refetch } = useSessionById(id);
+    const { data: sessionData, isLoading: loadingSession } = useSessionById(id);
     const endSessionMutation = useEndSession();
     const updateSettingsMutation = useUpdateSessionSettings();
 
@@ -46,8 +51,7 @@ function SessionPage() {
     const isParticipant = session?.participant?.clerkId === user?.id;
 
     // --- PROCTORING: flags state for host view ---
-    const [flags, setFlags] = useState([]);
-    const [showFlags, setShowFlags] = useState(false);
+    // (state declared above at top of component)
 
     const { call, channel, chatClient, isInitializingCall, streamClient } = useStreamClient(
         session,
@@ -61,10 +65,7 @@ function SessionPage() {
         ? Object.values(PROBLEMS).find((p) => p.title === session.problem)
         : null;
 
-    const [selectedLanguage, setSelectedLanguage] = useState("javascript");
-
     // --- NEW PROCTORING LOGIC ---
-    const [proctorPayload, setProctorPayload] = useState(null);
 
     // Fetch the token using your built-in Axios configuration
     useEffect(() => {
@@ -87,10 +88,8 @@ function SessionPage() {
         }
     }, [isParticipant, session?.status, session?.callId]);
     // ----------------------------
-    // ----------------------------
 
     // --- PROCTORING: fullscreen enforcement (participant only) ---
-    const [fullscreenWarning, setFullscreenWarning] = useState(false);
 
     // Step 1: Auto-enter fullscreen when fullscreenRequired becomes true
     useEffect(() => {
@@ -170,12 +169,19 @@ function SessionPage() {
     }, [session, user, loadingSession, isHost, isParticipant, navigate]);
     // -------------------------------
 
-    // redirect the "participant" when session ends
+    // redirect the "participant" when session ends — also exit fullscreen cleanly
     useEffect(() => {
         if (!session || loadingSession) return;
 
-        if (session.status === "completed") navigate("/dashboard");
+        if (session.status === "completed") {
+            // Exit fullscreen before leaving the page
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+            navigate("/dashboard");
+        }
     }, [session, loadingSession, navigate]);
+
 
     // update code when problem loads or changes
     useEffect(() => {

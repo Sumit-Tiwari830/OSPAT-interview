@@ -39,6 +39,7 @@ function SessionPage() {
     const [selectedLanguage, setSelectedLanguage] = useState("javascript");
     const [proctorPayload, setProctorPayload] = useState(null);
     const [fullscreenWarning, setFullscreenWarning] = useState(false);
+    const [needsFullscreen, setNeedsFullscreen] = useState(false); // true = show enter-fullscreen prompt
     const [flags, setFlags] = useState([]);
     const [showFlags, setShowFlags] = useState(false);
 
@@ -91,20 +92,13 @@ function SessionPage() {
 
     // --- PROCTORING: fullscreen enforcement (participant only) ---
 
-    // Step 1: Auto-enter fullscreen when fullscreenRequired becomes true
+    // Step 1: Show "Enter Fullscreen" prompt when fullscreenRequired is true
+    // We do NOT call requestFullscreen() automatically — browsers block it without a user gesture
     useEffect(() => {
         if (!isParticipant || !session?.fullscreenRequired || loadingSession) return;
-        if (document.fullscreenElement) return; // already fullscreen
-
-        const enterFullscreen = async () => {
-            try {
-                await document.documentElement.requestFullscreen();
-                setFullscreenWarning(false);
-            } catch (err) {
-                console.warn("Fullscreen request denied:", err);
-            }
-        };
-        enterFullscreen();
+        if (!document.fullscreenElement) {
+            setNeedsFullscreen(true); // triggers the click-to-enter overlay
+        }
     }, [isParticipant, session?.fullscreenRequired, loadingSession]);
 
     // Step 2: Detect violations and send flags
@@ -132,9 +126,12 @@ function SessionPage() {
         const handleFullscreenChange = () => {
             if (!document.fullscreenElement) {
                 setFullscreenWarning(true);
+                setNeedsFullscreen(false);
                 sendFlag('Exited fullscreen');
             } else {
+                // Entered fullscreen — clear both prompts
                 setFullscreenWarning(false);
+                setNeedsFullscreen(false);
             }
         };
 
@@ -249,33 +246,49 @@ function SessionPage() {
         <div className="h-screen bg-base-100 flex flex-col">
             <Navbar />
 
-            {/* --- FULLSCREEN WARNING BANNER (participant only) --- */}
-            {isParticipant && session?.fullscreenRequired && fullscreenWarning && (
-                <div className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center">
-                    <div className="bg-error text-error-content rounded-2xl p-8 max-w-md text-center shadow-2xl">
-                        <div className="text-5xl mb-4">⚠️</div>
-                        <h2 className="text-2xl font-bold mb-2">You Left Fullscreen!</h2>
-                        <p className="text-sm opacity-80 mb-6">
-                            This session requires fullscreen mode. A violation flag has been recorded.
-                            Please return to fullscreen immediately.
+            {/* --- FULLSCREEN OVERLAY (participant only) --- */}
+            {/* Shows on first load (needsFullscreen) OR after exiting (fullscreenWarning) */}
+            {isParticipant && session?.fullscreenRequired && (needsFullscreen || fullscreenWarning) && (
+                <div className="fixed inset-0 z-[9999] bg-black/85 flex items-center justify-center">
+                    <div className={`rounded-2xl p-8 max-w-md text-center shadow-2xl ${
+                        fullscreenWarning
+                            ? "bg-error text-error-content"
+                            : "bg-base-100 text-base-content border border-primary/30"
+                    }`}>
+                        <div className="text-5xl mb-4">
+                            {fullscreenWarning ? "⚠️" : "🔲"}
+                        </div>
+                        <h2 className="text-2xl font-bold mb-2">
+                            {fullscreenWarning
+                                ? "You Left Fullscreen!"
+                                : "Fullscreen Required"}
+                        </h2>
+                        <p className="text-sm opacity-75 mb-6">
+                            {fullscreenWarning
+                                ? "A violation flag has been recorded. Please return to fullscreen immediately."
+                                : "This interview requires fullscreen mode. Click below to begin."}
                         </p>
                         <button
-                            className="btn btn-lg btn-neutral w-full"
+                            id="enter-fullscreen-btn"
+                            className={`btn btn-lg w-full ${
+                                fullscreenWarning ? "btn-neutral" : "btn-primary"
+                            }`}
                             onClick={async () => {
                                 try {
                                     await document.documentElement.requestFullscreen();
+                                    setNeedsFullscreen(false);
                                     setFullscreenWarning(false);
                                 } catch (e) {
-                                    console.warn("Could not re-enter fullscreen:", e);
+                                    console.warn("Could not enter fullscreen:", e);
                                 }
                             }}
                         >
-                            🔲 Return to Fullscreen
+                            {fullscreenWarning ? "↩ Return to Fullscreen" : "▶ Enter Fullscreen to Start"}
                         </button>
                     </div>
                 </div>
             )}
-            {/* --------------------------------------------------- */}
+            {/* ----------------------------------------------- */}
 
             <div className="flex-1">
                 <PanelGroup direction="horizontal">

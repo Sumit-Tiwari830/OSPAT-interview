@@ -26,6 +26,17 @@ RUN cd frontend && npm install
 # Copy the rest of the application files
 COPY . .
 
+# Declare build arguments to inject environment variables at build-time in Docker
+ARG VITE_CLERK_PUBLISHABLE_KEY
+ARG VITE_STREAM_API_KEY
+ARG VITE_API_URL
+ARG VITE_RAPIDAPI_KEY
+
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
+ENV VITE_STREAM_API_KEY=$VITE_STREAM_API_KEY
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_RAPIDAPI_KEY=$VITE_RAPIDAPI_KEY
+
 # Build the React frontend production bundle
 RUN cd frontend && npm run build
 

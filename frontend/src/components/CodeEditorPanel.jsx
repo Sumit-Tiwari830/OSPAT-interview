@@ -1,5 +1,6 @@
 import Editor from "@monaco-editor/react";
-import { Loader2Icon, PlayIcon, BookOpenIcon, TerminalIcon } from "lucide-react";
+import { Loader2Icon, PlayIcon, BookOpenIcon, TerminalIcon, CopyIcon } from "lucide-react";
+import { toast } from "react-hot-toast";
 import { LANGUAGE_CONFIG } from "../data/problems";
 
 function CodeEditorPanel({
@@ -12,7 +13,12 @@ function CodeEditorPanel({
     compilerMode,
     onCompilerModeChange,
     problemTitle,
+    readOnly = false,
 }) {
+    const handleCopy = () => {
+        navigator.clipboard.writeText(code || "");
+        toast.success("Code copied to clipboard!");
+    };
     return (
         <div className="h-full bg-base-300 flex flex-col">
             {/* TABS HEADER */}
@@ -49,7 +55,7 @@ function CodeEditorPanel({
                         alt={LANGUAGE_CONFIG[selectedLanguage].name}
                         className="size-6"
                     />
-                    <select className="select select-sm" value={selectedLanguage} onChange={onLanguageChange}>
+                    <select className="select select-sm" value={selectedLanguage} onChange={onLanguageChange} disabled={readOnly}>
                         {Object.entries(LANGUAGE_CONFIG).map(([key, lang]) => (
                             <option key={key} value={key}>
                                 {lang.name}
@@ -58,19 +64,29 @@ function CodeEditorPanel({
                     </select>
                 </div>
 
-                <button className="btn btn-primary btn-sm gap-2" disabled={isRunning} onClick={onRunCode}>
-                    {isRunning ? (
-                        <>
-                            <Loader2Icon className="size-4 animate-spin" />
-                            Running...
-                        </>
-                    ) : (
-                        <>
-                            <PlayIcon className="size-4" />
-                            Run Code
-                        </>
-                    )}
-                </button>
+                <div className="flex items-center gap-2">
+                    <button 
+                        className="btn btn-ghost btn-sm border border-base-300 gap-1.5" 
+                        onClick={handleCopy}
+                        title="Copy entire editor contents to clipboard"
+                    >
+                        <CopyIcon className="size-3.5" />
+                        <span>Copy Code</span>
+                    </button>
+                    <button className="btn btn-primary btn-sm gap-2" disabled={isRunning || readOnly} onClick={onRunCode}>
+                        {isRunning ? (
+                            <>
+                                <Loader2Icon className="size-4 animate-spin" />
+                                Running...
+                            </>
+                        ) : (
+                            <>
+                                <PlayIcon className="size-4" />
+                                Run Code
+                            </>
+                        )}
+                    </button>
+                </div>
             </div>
 
             {/* EDITOR */}
@@ -87,6 +103,7 @@ function CodeEditorPanel({
                         scrollBeyondLastLine: false,
                         automaticLayout: true,
                         minimap: { enabled: false },
+                        readOnly: readOnly,
                     }}
                 />
             </div>

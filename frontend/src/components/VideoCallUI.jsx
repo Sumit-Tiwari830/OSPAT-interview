@@ -5,13 +5,42 @@ import {
     useCallStateHooks,
     ParticipantView, // <-- Added this to render specific video tiles
 } from "@stream-io/video-react-sdk";
-import { Loader2Icon, MessageSquareIcon, UsersIcon, XIcon } from "lucide-react";
+import { Loader2Icon, MessageSquareIcon, UsersIcon, XIcon, CopyIcon } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { Channel, Chat, MessageInput, MessageList, Thread, Window } from "stream-chat-react";
+import { Channel, Chat, MessageInput, MessageList, Thread, Window, MessageSimple } from "stream-chat-react";
+import { toast } from "react-hot-toast";
 
 import "@stream-io/video-react-sdk/dist/css/styles.css";
 import "stream-chat-react/dist/css/v2/index.css";
+
+const CustomMessage = (props) => {
+    const { message, isMyMessage } = props;
+
+    const handleCopy = () => {
+        if (message?.text) {
+            navigator.clipboard.writeText(message.text);
+            toast.success("Message copied to clipboard!");
+        }
+    };
+
+    return (
+        <div className="relative group/chatmsg">
+            <div className={`absolute top-1/2 -translate-y-1/2 z-10 opacity-0 group-hover/chatmsg:opacity-100 transition-all duration-200 ${
+                isMyMessage ? "left-0 -translate-x-7" : "right-0 translate-x-7"
+            }`}>
+                <button 
+                    onClick={handleCopy}
+                    className="btn btn-ghost btn-xs btn-square bg-base-200 hover:bg-base-300 text-base-content/60 hover:text-base-content shadow border border-base-300 rounded-md"
+                    title="Copy message text"
+                >
+                    <CopyIcon className="w-3 h-3" />
+                </button>
+            </div>
+            <MessageSimple {...props} />
+        </div>
+    );
+};
 
 function VideoCallUI({ chatClient, channel }) {
     const navigate = useNavigate();
@@ -116,7 +145,7 @@ function VideoCallUI({ chatClient, channel }) {
                             </div>
                             <div className="flex-1 overflow-hidden stream-chat-dark">
                                 <Chat client={chatClient} theme="str-chat__theme-dark">
-                                    <Channel channel={channel}>
+                                    <Channel channel={channel} Message={CustomMessage}>
                                         <Window>
                                             <MessageList />
                                             <MessageInput />

@@ -11,11 +11,13 @@ import { inngest, functions } from "./lib/inngest.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import sessionRoutes from "./routes/sessionRoute.js";
 import flagRoutes from "./routes/flagRoute.js";
+import aiRoutes from "./routes/aiRoute.js";
 
 const app = express();
 
 const __dirname = path.resolve();
-app.use(express.json());
+app.use(express.json({ limit: "15mb" }));
+app.use(express.urlencoded({ limit: "15mb", extended: true }));
 app.use(cors({ origin: ENV.CLIENT_URL, credentials: true }));
 app.use(clerkMiddleware());
 
@@ -23,6 +25,7 @@ app.use("/api/inngest", serve({ client: inngest, functions }))
 app.use("/api/chat", chatRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/flags", flagRoutes);
+app.use("/api/ai", aiRoutes);
 
 app.get('/health', (req, res) => {
     res.status(200).json({ message: 'Hello World health!123' });

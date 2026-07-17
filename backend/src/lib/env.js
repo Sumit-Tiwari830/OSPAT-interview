@@ -12,4 +12,6 @@ export const ENV = {
     STREAM_API_KEY: process.env.STREAM_API_KEY,
     STREAM_API_SECRET: process.env.STREAM_API_SECRET,
     ONLINECOMPILER_KEY: process.env.ONLINECOMPILER_KEY,
+    GROK_API_KEY: process.env.GROK_API_KEY,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
 };

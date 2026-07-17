@@ -7,3 +7,4 @@ langchain-google-genai==1.0.6
 langchain-openai==0.1.9
 langgraph==0.1.4
 python-dotenv==1.0.1
+gTTS==2.5.4

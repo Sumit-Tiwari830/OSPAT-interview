@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router";
-import { BookOpenIcon, LayoutDashboardIcon, SparklesIcon } from "lucide-react";
+import { BookOpenIcon, LayoutDashboardIcon, SparklesIcon, FileSearchIcon } from "lucide-react";
 import { UserButton } from "@clerk/clerk-react";
 
 function Navbar() {
@@ -39,6 +39,19 @@ function Navbar() {
                         <div className="flex items-center gap-x-2.5">
                             <BookOpenIcon className={`size-4 ${isActive("/problems") ? "text-primary" : ""}`} />
                             <span className="font-medium hidden sm:inline tracking-wide">Problems</span>
+                        </div>
+                    </Link>
+
+                    <Link
+                        to={"/ats"}
+                        className={`px-4 py-2.5 rounded-xl transition-all duration-300 border ${isActive("/ats")
+                            ? "bg-primary/10 text-primary border-primary/20 shadow-[0_0_15px_rgba(79,70,229,0.15)]"
+                            : "border-transparent hover:bg-base-200/60 text-base-content/60 hover:text-primary"
+                            }`}
+                    >
+                        <div className="flex items-center gap-x-2.5">
+                            <FileSearchIcon className={`size-4 ${isActive("/ats") ? "text-primary" : ""}`} />
+                            <span className="font-medium hidden sm:inline tracking-wide">ATS Scanner</span>
                         </div>
                     </Link>
 

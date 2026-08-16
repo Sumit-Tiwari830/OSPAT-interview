@@ -1,80 +1,113 @@
 import Editor from "@monaco-editor/react";
-import { Loader2Icon, PlayIcon } from "lucide-react";
+import { Loader2Icon, PlayIcon, BookOpenIcon, TerminalIcon, CopyIcon } from "lucide-react";
+import { toast } from "react-hot-toast";
+import { LANGUAGE_CONFIG } from "../data/problems";
 
 function CodeEditorPanel({
-    // Accept ANY of the common variable names your parent page might be using
-    language,           
-    selectedLanguage,   
-    
-    // Accept ANY of the common function names your parent page might be using
-    onLanguageChange,
-    onChangeLanguage,
-    setLanguage,
-
+    selectedLanguage,
     code,
     isRunning,
+    onLanguageChange,
     onCodeChange,
     onRunCode,
+    compilerMode,
+    onCompilerModeChange,
+    problemTitle,
+    readOnly = false,
 }) {
-    // Grabs whichever state variable your parent page is actually passing down
-    // Default changed to python since javascript is removed
-    const currentLang = language || selectedLanguage || "python";
-
-    const handleLanguageSelect = (e) => {
-        const newLang = e.target.value;
-        
-        // Broadcasts the change to whichever wire the parent is actually listening to!
-        // NOTE: This passes the string `newLang`, NOT the event!
-        if (onLanguageChange) onLanguageChange(newLang);
-        if (onChangeLanguage) onChangeLanguage(newLang);
-        if (setLanguage) setLanguage(newLang);
+    const handleCopy = () => {
+        navigator.clipboard.writeText(code || "");
+        toast.success("Code copied to clipboard!");
     };
-
     return (
-        <div className="flex flex-col h-full bg-[#1e1e1e]">
-            {/* Header Toolbar */}
-            <div className="flex justify-between items-center p-3 bg-gray-900 border-b border-gray-800">
-                <select 
-                    value={currentLang} 
-                    onChange={handleLanguageSelect}
-                    className="bg-gray-800 text-white rounded px-3 py-1 outline-none text-sm border border-gray-700 font-semibold cursor-pointer"
+        <div className="h-full bg-base-300 flex flex-col">
+            {/* TABS HEADER */}
+            <div className="flex border-b border-base-300 bg-base-200/50">
+                <button
+                    onClick={() => onCompilerModeChange("problem")}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+                        compilerMode === "problem"
+                            ? "border-primary text-primary bg-base-100"
+                            : "border-transparent text-base-content/60 hover:text-base-content hover:bg-base-200/30"
+                    }`}
                 >
-                    {/* Removed JavaScript option */}
-                    <option value="python">Python 3</option>
-                    <option value="cpp">C++ (GCC)</option>
-                    <option value="c">C (GCC)</option>
-                    <option value="java">Java</option>
-                </select>
-                
-                <button 
-                    onClick={onRunCode} 
-                    disabled={isRunning}
-                    className="bg-green-600 hover:bg-green-500 text-white px-4 py-1.5 rounded text-sm font-semibold transition-colors disabled:opacity-50 flex items-center gap-2"
+                    <BookOpenIcon className="size-4" />
+                    <span>Problem: {problemTitle || "Active Problem"}</span>
+                </button>
+                <button
+                    onClick={() => onCompilerModeChange("playground")}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+                        compilerMode === "playground"
+                            ? "border-primary text-primary bg-base-100"
+                            : "border-transparent text-base-content/60 hover:text-base-content hover:bg-base-200/30"
+                    }`}
                 >
-                    {isRunning ? <Loader2Icon className="w-4 h-4 animate-spin" /> : <PlayIcon className="w-4 h-4" />}
-                    {isRunning ? 'Running...' : 'Run Code'}
+                    <TerminalIcon className="size-4" />
+                    <span>Free Playground</span>
                 </button>
             </div>
-            
-            {/* The Colorful Monaco Editor! */}
-            <div className="flex-grow">
+
+            {/* TOOLBAR */}
+            <div className="flex items-center justify-between px-4 py-3 bg-base-100 border-b border-base-300">
+                <div className="flex items-center gap-3">
+                    <img
+                        src={LANGUAGE_CONFIG[selectedLanguage].icon}
+                        alt={LANGUAGE_CONFIG[selectedLanguage].name}
+                        className="size-6"
+                    />
+                    <select className="select select-sm" value={selectedLanguage} onChange={onLanguageChange} disabled={readOnly}>
+                        {Object.entries(LANGUAGE_CONFIG).map(([key, lang]) => (
+                            <option key={key} value={key}>
+                                {lang.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <button 
+                        className="btn btn-ghost btn-sm border border-base-300 gap-1.5" 
+                        onClick={handleCopy}
+                        title="Copy entire editor contents to clipboard"
+                    >
+                        <CopyIcon className="size-3.5" />
+                        <span>Copy Code</span>
+                    </button>
+                    <button className="btn btn-primary btn-sm gap-2" disabled={isRunning || readOnly} onClick={onRunCode}>
+                        {isRunning ? (
+                            <>
+                                <Loader2Icon className="size-4 animate-spin" />
+                                Running...
+                            </>
+                        ) : (
+                            <>
+                                <PlayIcon className="size-4" />
+                                Run Code
+                            </>
+                        )}
+                    </button>
+                </div>
+            </div>
+
+            {/* EDITOR */}
+            <div className="flex-1">
                 <Editor
-                    height="100%"
-                    language={currentLang === 'cpp' || currentLang === 'c' ? 'cpp' : currentLang}
-                    theme="vs-dark"
+                    height={"100%"}
+                    language={LANGUAGE_CONFIG[selectedLanguage].monacoLang}
                     value={code}
-                    onChange={(value) => {
-                        if (onCodeChange) onCodeChange(value || '');
-                    }}
+                    onChange={onCodeChange}
+                    theme="vs-dark"
                     options={{
+                        fontSize: 16,
+                        lineNumbers: "on",
+                        scrollBeyondLastLine: false,
+                        automaticLayout: true,
                         minimap: { enabled: false },
-                        fontSize: 14,
-                        padding: { top: 16 }
+                        readOnly: readOnly,
                     }}
                 />
             </div>
         </div>
     );
 }
-
 export default CodeEditorPanel;

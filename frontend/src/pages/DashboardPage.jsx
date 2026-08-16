@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router";
 import { useUser } from "@clerk/clerk-react";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useActiveSessions, useCreateSession, useMyRecentSessions } from "../hooks/useSessions";
 import axiosInstance from "../lib/axios";
 
@@ -15,7 +16,17 @@ function DashboardPage() {
     const navigate = useNavigate();
     const { user } = useUser();
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [roomConfig, setRoomConfig] = useState({ problem: "", difficulty: "", password: "" });
+    const [roomConfig, setRoomConfig] = useState({ 
+        problem: "", 
+        customDescription: "",
+        difficulty: "medium", 
+        password: "", 
+        type: "personal",
+        problemType: "preset",
+        fullscreenRequired: false,
+        duration: 30,
+        jobDescription: ""
+    });
 
     // Join Form State
     const [joinCode, setJoinCode] = useState("");
@@ -27,24 +38,48 @@ function DashboardPage() {
     const { data: activeSessionsData, isLoading: loadingActiveSessions } = useActiveSessions();
     const { data: recentSessionsData, isLoading: loadingRecentSessions } = useMyRecentSessions();
 
-    const handleCreateRoom = () => {
-        if (!roomConfig.problem || !roomConfig.difficulty || !roomConfig.password) return;
+    const queryClient = useQueryClient();
+
+    const handleCreateRoom = (shouldJoin = true) => {
+        // Only problem title is strictly required on creation
+        if (!roomConfig.problem) return;
 
         createSessionMutation.mutate(
             {
                 problem: roomConfig.problem,
+                customDescription: roomConfig.customDescription,
                 difficulty: roomConfig.difficulty.toLowerCase(),
                 password: roomConfig.password,
+                fullscreenRequired: roomConfig.fullscreenRequired || false,
+                type: roomConfig.type || "personal",
+                jobDescription: roomConfig.jobDescription || "",
+                duration: roomConfig.duration || 30,
             },
             {
                 onSuccess: (data) => {
                     setShowCreateModal(false);
-                    setRoomConfig({ problem: "", difficulty: "", password: "" }); // Reset
-                    navigate(`/session/${data.session._id}`);
+                    setRoomConfig({ 
+                        problem: "", 
+                        customDescription: "",
+                        difficulty: "medium", 
+                        password: "", 
+                        type: "personal",
+                        problemType: "preset",
+                        fullscreenRequired: false,
+                        duration: 30,
+                        jobDescription: ""
+                    }); // Reset
+                    
+                    if (shouldJoin) {
+                        navigate(`/session/${data.session._id}`);
+                    } else {
+                        queryClient.invalidateQueries({ queryKey: ["activeSessions"] });
+                    }
                 },
             }
         );
     };
+
 
     const handleJoinSession = async (e) => {
         e.preventDefault();
@@ -120,7 +155,7 @@ function DashboardPage() {
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <StatsCards
                             activeSessionsCount={activeSessions.length}
-                            recentSessionsCount={recentSessions.length}
+                            recentSessionsCount={recentSessionsData?.totalCount ?? recentSessions.length}
                         />
                         
                         {/* --- THIS IS THE FIX --- */}

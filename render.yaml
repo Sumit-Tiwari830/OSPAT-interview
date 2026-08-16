@@ -1,0 +1,40 @@
+# Render deployment config
+# https://render.com/docs/infrastructure-as-code
+
+services:
+  # ── Backend (Node.js + Express) ──────────────────────────────
+  - type: web
+    name: ospat-backend
+    runtime: node
+    region: oregon
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DB_URL
+        sync: false          # Set this in Render dashboard
+      - key: CLIENT_URL
+        sync: false          # Set to your Vercel frontend URL
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: STREAM_API_KEY
+        sync: false
+      - key: STREAM_API_SECRET
+        sync: false
+      - key: INNGEST_EVENT_KEY
+        sync: false
+      - key: INNGEST_SIGNING_KEY
+        sync: false
+      - key: ONLINECOMPILER_KEY
+        sync: false
+      - key: GROK_API_KEY
+        sync: false
+      - key: AI_SERVICE_URL
+        sync: false          # Set to your HF Spaces URL e.g. https://username-ospat-ai-service.hf.space

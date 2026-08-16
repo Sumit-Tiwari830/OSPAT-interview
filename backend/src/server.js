@@ -11,15 +11,29 @@ import { inngest, functions } from "./lib/inngest.js";
 import chatRoutes from "./routes/chatRoutes.js";
 import sessionRoutes from "./routes/sessionRoute.js";
 import codeRoutes from './routes/codeRoutes.js';
-
+import flagRoutes from "./routes/flagRoute.js";
+import aiRoutes from "./routes/aiRoute.js";
 
 const app = express();
 
-//console.log('PORT:', ENV.PORT);
-//console.log('DB_URL:', ENV.DB_URL);
 const __dirname = path.resolve();
-app.use(express.json());
-app.use(cors({ origin: ENV.CLIENT_URL, credentials: true }));
+app.use(express.json({ limit: "15mb" }));
+app.use(express.urlencoded({ limit: "15mb", extended: true }));
+// Allow CORS from local dev + Vercel deployments
+const allowedOrigins = [
+    ENV.CLIENT_URL,                        // e.g. http://localhost:5173 or https://your-app.vercel.app
+    /^https:\/\/.*\.vercel\.app$/,         // any Vercel preview/prod URL
+];
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true); // allow server-to-server
+        const allowed = allowedOrigins.some(o =>
+            typeof o === "string" ? o === origin : o.test(origin)
+        );
+        callback(allowed ? null : new Error("Not allowed by CORS"), allowed);
+    },
+    credentials: true
+}));
 app.use(clerkMiddleware());
 
 app.use("/api/inngest", serve({ client: inngest, functions }))
@@ -28,6 +42,9 @@ app.use("/api/chat", chatRoutes);
 app.use('/api/code', codeRoutes);
 
 app.use("/api/sessions", sessionRoutes);
+app.use("/api/flags", flagRoutes);
+app.use("/api/ai", aiRoutes);
+
 app.get('/health', (req, res) => {
     res.status(200).json({ message: 'Hello World health!123' });
 });
@@ -45,6 +62,7 @@ if (ENV.NODE_ENV === "production") {
         res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
     });
 }
+
 const startServer = async () => {
     try {
         if (!ENV.DB_URL) {

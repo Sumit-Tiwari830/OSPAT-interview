@@ -2,4 +2,16 @@ node_modules
 .env
 backend/.env
 frontend/.env
+ai-service/.env
 .DS_Store
+
+# Python virtual environment & cache
+**/venv/
+**/.venv/
+**/__pycache__/
+**/*.pyc
+
+# Logs & temporary files
+*.log
+**/uploads/
+**/backend/uploads/

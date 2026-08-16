@@ -18,7 +18,21 @@ const app = express();
 const __dirname = path.resolve();
 app.use(express.json({ limit: "15mb" }));
 app.use(express.urlencoded({ limit: "15mb", extended: true }));
-app.use(cors({ origin: ENV.CLIENT_URL, credentials: true }));
+// Allow CORS from local dev + Vercel deployments
+const allowedOrigins = [
+    ENV.CLIENT_URL,                        // e.g. http://localhost:5173 or https://your-app.vercel.app
+    /^https:\/\/.*\.vercel\.app$/,         // any Vercel preview/prod URL
+];
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true); // allow server-to-server
+        const allowed = allowedOrigins.some(o =>
+            typeof o === "string" ? o === origin : o.test(origin)
+        );
+        callback(allowed ? null : new Error("Not allowed by CORS"), allowed);
+    },
+    credentials: true
+}));
 app.use(clerkMiddleware());
 
 app.use("/api/inngest", serve({ client: inngest, functions }))

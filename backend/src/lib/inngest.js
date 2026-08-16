@@ -5,7 +5,7 @@ import Session from "../models/Session.js";
 import { deleteStreamUser, upsertStreamUser, streamClient, chatClient } from "./stream.js";
 import axios from "axios";
 import Review from "../models/Review.js";
-import { PROBLEMS } from "../../../frontend/src/data/problems.js";
+import { PROBLEMS } from "../data/problems.js";
 
 export const inngest = new Inngest({ id: "ospat" });
 

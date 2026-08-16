@@ -8,7 +8,7 @@ import axios from "axios";
 import Review from "../models/Review.js";
 import Session from "../models/Session.js";
 import ConductorMessage from "../models/ConductorMessage.js";
-import { PROBLEMS } from "../../../frontend/src/data/problems.js";
+import { PROBLEMS } from "../data/problems.js";
 
 // Python AI service base URL
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";

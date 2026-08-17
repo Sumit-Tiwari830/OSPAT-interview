@@ -9,9 +9,10 @@ import Review from "../models/Review.js";
 import Session from "../models/Session.js";
 import ConductorMessage from "../models/ConductorMessage.js";
 import { PROBLEMS } from "../data/problems.js";
+import { ENV } from "../lib/env.js";
 
 // Python AI service base URL
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "http://localhost:8000";
+const AI_SERVICE_URL = ENV.AI_SERVICE_URL || process.env.AI_SERVICE_URL || "http://localhost:8000";
 
 // ─── Code Review ──────────────────────────────────────────────────
 

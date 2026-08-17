@@ -14,4 +14,5 @@ export const ENV = {
     ONLINECOMPILER_KEY: process.env.ONLINECOMPILER_KEY,
     GROK_API_KEY: process.env.GROK_API_KEY,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    AI_SERVICE_URL: process.env.AI_SERVICE_URL || "http://localhost:8000",
 };

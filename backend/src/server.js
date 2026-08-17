@@ -55,11 +55,15 @@ app.get('/video-calls', (req, res) => {
     res.status(200).json({ message: 'Hello World!123 video calls' });
 });
 
-if (ENV.NODE_ENV === "production") {
+const frontendIndex = path.join(__dirname, "../frontend/dist/index.html");
+if (fs.existsSync(frontendIndex)) {
     app.use(express.static(path.join(__dirname, "../frontend/dist")));
-
     app.get("/{*any}", (req, res) => {
-        res.sendFile(path.join(__dirname, "../frontend", "dist", "index.html"));
+        res.sendFile(frontendIndex);
+    });
+} else {
+    app.get("/", (req, res) => {
+        res.status(200).json({ status: "ok", message: "OSPAT Backend API is running" });
     });
 }
 

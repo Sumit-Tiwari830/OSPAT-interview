@@ -1,4 +1,4 @@
-import { chatClient, streamClient } from "../lib/stream.js";
+import { chatClient, streamClient, upsertStreamUser } from "../lib/stream.js";
 import Session from "../models/Session.js";
 import { ENV } from "../lib/env.js";
 import { inngest } from "../lib/inngest.js";
@@ -63,6 +63,13 @@ export async function createSession(req, res) {
 
         // Initialize Stream video and chat ONLY for personal interviews
         if (type === "personal") {
+            // Ensure creator user exists in Stream before creating channel/call
+            await upsertStreamUser({
+                id: clerkId,
+                name: req.user.name || req.user.email || clerkId,
+                image: req.user.profileImage || "",
+            });
+
             await streamClient.video.call("default", callId).getOrCreate({
                 data: {
                     created_by_id: clerkId,

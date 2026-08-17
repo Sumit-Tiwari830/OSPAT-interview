@@ -329,6 +329,5 @@ def text_to_speech(req: TtsRequest):
 if __name__ == "__main__":
     import uvicorn
     # HF Spaces uses port 7860 by default; local dev uses 8000
-    port = int(os.getenv("PORT", os.getenv("AI_SERVICE_PORT", 7860)))
-    reload = os.getenv("ENV", "production") == "development"
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=reload)
+    port = int(os.getenv("AI_SERVICE_PORT", os.getenv("PORT", 8000)))
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)

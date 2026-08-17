@@ -178,6 +178,7 @@ function SessionPage() {
                 // Entered fullscreen — clear both prompts
                 setFullscreenWarning(false);
                 setNeedsFullscreen(false);
+                sendFlag('Re-entered fullscreen');
             }
         };
 
@@ -476,6 +477,17 @@ function SessionPage() {
                                                                         {flags.length} flag{flags.length > 1 ? "s" : ""}
                                                                     </span>
                                                                 )}
+                                                                {/* --- LIVE STUDENT FULLSCREEN INDICATOR --- */}
+                                                                {(() => {
+                                                                    const lastFlag = flags.length > 0 ? flags[flags.length - 1] : null;
+                                                                    const isExited = lastFlag && (lastFlag.reason === "Exited fullscreen" || lastFlag.reason === "Switched tab or minimized window");
+                                                                    return (
+                                                                        <span className={`badge badge-sm font-semibold gap-1 whitespace-nowrap ${isExited ? "badge-error animate-pulse text-white" : "badge-success text-white"}`}>
+                                                                            <span className={`w-1.5 h-1.5 rounded-full ${isExited ? "bg-red-100" : "bg-green-100"}`}></span>
+                                                                            {isExited ? "Student: Exited Fullscreen 🔴" : "Student: In Fullscreen 🟢"}
+                                                                        </span>
+                                                                    );
+                                                                })()}
                                                             </div>
                                                             <button
                                                                 className="btn btn-xs btn-ghost"

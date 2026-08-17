@@ -57,8 +57,8 @@ def run_code_review(
                 print("[Review] Using standard Grok (x.ai) endpoint...")
                 model = ChatOpenAI(
                     api_key=grok_api_key,
-                    model="grok-3-mini",
-                    openai_api_base="https://api.x.ai/v1",
+                    model="groq/compound",
+                    openai_api_base="https://api.groq.com/openai/v1",
                     temperature=0.2,
                     max_tokens=1024
                 )
@@ -75,7 +75,7 @@ def run_code_review(
             print("[Review] Invoking Gemini model for code review...")
             model = ChatGoogleGenerativeAI(
                 google_api_key=gemini_api_key,
-                model="gemini-2.0-flash",
+                model="gemini-2.5-flash",
                 temperature=0.2,
                 max_output_tokens=1024
             )

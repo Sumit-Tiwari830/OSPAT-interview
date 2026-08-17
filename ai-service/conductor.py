@@ -50,19 +50,36 @@ def get_gemini_model():
         raise ValueError("GEMINI_API_KEY environment variable is not set.")
     return ChatGoogleGenerativeAI(
         google_api_key=gemini_api_key,
-        model="gemini-2.0-flash",
+        model="gemini-2.5-flash",
         temperature=0.7,
         max_output_tokens=1024
     )
 
 def ask_gemini(prompt: str) -> str:
-    model = get_gemini_model()
-    messages = [
-        SystemMessage(content=CONDUCTOR_SYSTEM_PROMPT),
-        HumanMessage(content=prompt)
-    ]
-    response = model.invoke(messages)
-    return response.content.strip()
+    # Try Groq Llama-3.3-70b first (ultra fast, high quota)
+    try:
+        return ask_grok(prompt)
+    except Exception as grok_err:
+        print(f"[Conductor] Grok call failed ({grok_err}). Trying Gemini fallback...")
+        try:
+            gemini_api_key = os.getenv("GEMINI_API_KEY")
+            if not gemini_api_key:
+                raise ValueError("GEMINI_API_KEY environment variable is not set.")
+            model = ChatGoogleGenerativeAI(
+                google_api_key=gemini_api_key,
+                model="gemini-1.5-flash",
+                temperature=0.7,
+                max_output_tokens=1024
+            )
+            messages = [
+                SystemMessage(content=CONDUCTOR_SYSTEM_PROMPT),
+                HumanMessage(content=prompt)
+            ]
+            response = model.invoke(messages)
+            return response.content.strip()
+        except Exception as e:
+            print(f"[Conductor] Gemini fallback also failed ({e}).")
+            raise e
 
 # Initialize Grok (Groq) Model
 def get_grok_model():
@@ -72,7 +89,7 @@ def get_grok_model():
     return ChatOpenAI(
         openai_api_key=grok_api_key,
         openai_api_base="https://api.groq.com/openai/v1",
-        model_name="llama-3.3-70b-versatile",
+        model_name="groq/compound",
         temperature=0.7,
         max_tokens=1024
     )

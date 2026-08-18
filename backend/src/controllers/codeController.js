@@ -25,7 +25,7 @@ export const executeCode = async (req, res) => {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': process.env.ONLINE_COMPILER_API_KEY 
+                'Authorization': process.env.ONLINECOMPILER_KEY 
             },
             body: JSON.stringify({ compiler, code, input })
         });

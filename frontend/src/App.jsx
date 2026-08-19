@@ -1,5 +1,7 @@
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
+import { useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router";
+import axiosInstance from "./lib/axios";
 import HomePage from "./pages/HomePage";
 import ProblemsPage from "./pages/ProblemsPage";
 import { Toaster } from "react-hot-toast";
@@ -8,8 +10,32 @@ import ProblemPage from "./pages/ProblemPage";
 import SessionPage from "./pages/SessionPage";
 import ReviewPage from "./pages/ReviewPage";
 import AtsPage from "./pages/AtsPage";
+
 function App() {
   const { isSignedIn, isLoaded } = useUser();
+  const { getToken } = useAuth();
+
+  useEffect(() => {
+    const requestInterceptor = axiosInstance.interceptors.request.use(
+      async (config) => {
+        try {
+          const token = await getToken();
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+        } catch (error) {
+          console.error("Error fetching Clerk token:", error);
+        }
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    return () => {
+      axiosInstance.interceptors.request.eject(requestInterceptor);
+    };
+  }, [getToken]);
+
   if (!isLoaded) {
     return null;
   }
